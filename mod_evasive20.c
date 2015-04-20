@@ -105,6 +105,7 @@ static int page_count = DEFAULT_PAGE_COUNT;
 static int page_interval = DEFAULT_PAGE_INTERVAL;
 static int site_count = DEFAULT_SITE_COUNT;
 static int site_interval = DEFAULT_SITE_INTERVAL;
+static int status_code = HTTP_FORBIDDEN;
 static int blocking_period = DEFAULT_BLOCKING_PERIOD;
 static char *email_notify = NULL;
 static char *log_dir = NULL;
@@ -342,6 +343,10 @@ static int access_checker(request_rec *r)
             "client denied by server configuration: %s",
             r->filename);
       }
+    }
+
+    if (ret == HTTP_FORBIDDEN) {
+        ret = status_code;
     }
 
     return ret;
@@ -719,6 +724,18 @@ get_site_interval(cmd_parms *cmd, void *dconfig, const char *value) {
 }
 
 static const char *
+get_status_code(cmd_parms *cmd, void *dconfig, const char *value) {
+  long n = strtol(value, NULL, 0);
+  if (n<=0) {
+    status_code = HTTP_FORBIDDEN;
+  } else {
+    status_code = n;
+  }
+
+  return NULL;
+}
+
+static const char *
 get_blocking_period(cmd_parms *cmd, void *dconfig, const char *value) {
   long n = strtol(value, NULL, 0);
   if (n<=0) {
@@ -818,6 +835,9 @@ static const command_rec access_cmds[] =
 
   AP_INIT_ITERATE("DOSWhitelist", whitelist, NULL, RSRC_CONF,
     "IP-addresses wildcards to whitelist"),
+
+  AP_INIT_TAKE1("DOSStatusCode", get_status_code, NULL, RSRC_CONF,
+    "Define status code on DoS"),
 
   AP_INIT_TAKE1("DOSXForwardedForAsRemoteIP", get_x_forwarded_for_as_remote_ip, NULL, RSRC_CONF,
     "Set whether to treat X-Forwarded-For as remote IP"),
